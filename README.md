@@ -242,4 +242,80 @@ For ps5-linux kernel builds:
 
 - The ps5-linux / ps5-linux-loader developers, for the Salina drivers and Ubuntu image that make any of this possible.
 - The upstream Linux `mt76` driver maintainers.
-- @soniciso1 for creating the new Linux Loader for 13.60 using Bypervisor Reborn.
+
+---
+
+## Easy install: prebuilt package
+
+If you are on the stock ps5-linux-loader Ubuntu image (kernel 7.1.7), you do not need to build anything. Download `ps5-mt7921-wifi-7.1.7.zip` from this repo's **Releases** page. It contains a `.deb` with the patched, prebuilt driver and an `install.sh` that checks your system and installs it. No compiler or internet connection is needed.
+
+### Requirements
+
+- **Kernel 7.1.7**, the kernel in the ps5-linux-loader Ubuntu image. Check with `uname -r`.
+- **A MediaTek MT7921 chip.** Check with:
+
+  ```bash
+  lspci -nn -s 40:00.7
+  ```
+
+  You need to see `MEDIATEK Corp. MT7921 ... [14c3:7961]`. If it says Marvell, this package isn't for you; use the project's official Marvell driver instead.
+- **MediaTek firmware**, which the Ubuntu image already includes (`/lib/firmware/mediatek/WIFI_RAM_CODE_MT7961_1.bin*`).
+
+The installer checks all three and stops if anything doesn't match.
+
+### Install
+
+1. Copy the zip onto the PS5's Ubuntu install, for example from a USB stick or with a browser download.
+2. Unzip it and run the installer:
+
+   ```bash
+   unzip ps5-mt7921-wifi-7.1.7.zip -d ps5-wifi
+   cd ps5-wifi
+   bash install.sh
+   ```
+
+   Enter your password when asked.
+3. When it says **"You need to reboot for it to take effect"**, reboot whenever you're ready. The installer never reboots on its own.
+4. After rebooting, connect to your network from the Wi-Fi menu in the top-right corner, like on any Ubuntu PC. Once connected, it reconnects automatically on every boot.
+
+### Check that it's working
+
+```bash
+ip link | grep wlp
+cat /sys/module/mt7921e/parameters/disable_aspm
+```
+
+You should see a `wlp64s0f7` interface (the name may vary slightly) and `Y`.
+
+### Uninstall
+
+```bash
+sudo apt purge ps5-mt7921-wifi
+```
+
+Then reboot. The internal Wi-Fi goes back to being unused, exactly as before.
+
+### Troubleshooting
+
+**The installer says "Do NOT reboot".** Something didn't install correctly. Run `sudo apt purge ps5-mt7921-wifi` to remove it, then report the installer's output.
+
+**The console shuts off during boot after installing.** This shouldn't happen, but if it does, plug the Ubuntu USB drive into another Linux computer and delete these two files from it:
+
+```
+usr/lib/modules/7.1.7/updates/mt7921-common.ko
+usr/lib/modules/7.1.7/updates/mt7921e.ko
+```
+
+The PS5 will then boot normally without the driver. Please report what happened.
+
+**No Wi-Fi networks show up.** Run `sudo dmesg | grep -i mt79`. A line starting `WM Firmware Version` means the driver loaded. If you see firmware errors instead, check that the firmware files listed under Requirements exist.
+
+### Good to know
+
+- **Power saving is disabled on the Wi-Fi chip.** That's the fix: with power saving on, the chip crashes the PS5's southbridge and the console shuts off. The extra power use is negligible on a plugged-in console.
+- **Only works with kernel 7.1.7.** If a future ps5-linux-loader image uses a different kernel, this package will refuse to install, and a new build is needed.
+- **Disabling system sleep is recommended.** Suspend isn't supported on PS5 Linux. To turn it off completely:
+
+  ```bash
+  sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+  ```
