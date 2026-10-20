@@ -242,3 +242,4 @@ For ps5-linux kernel builds:
 
 - The ps5-linux / ps5-linux-loader developers, for the Salina drivers and Ubuntu image that make any of this possible.
 - The upstream Linux `mt76` driver maintainers.
+- @soniciso1 for creating the new Linux Loader for 13.60 using Bypervisor Reborn.
